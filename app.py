@@ -51,6 +51,16 @@ CONTACTS = [
     ("📋", "Society secretary", "+91 77031 58946"),
 ]
 
+HERO_ART = (
+    '<div class="hero-art"><svg viewBox="0 0 120 120">'
+    '<circle cx="60" cy="60" r="56" fill="rgba(255,255,255,0.12)"/>'
+    '<path d="M60 20 L94 33 V62 C94 84 79 98 60 105 C41 98 26 84 26 62 V33 Z" '
+    'fill="#ffffff" opacity="0.95"/>'
+    '<path class="flame" d="M60 44 C70 56 76 66 74 78 C72 90 48 90 46 78 C44 66 50 56 60 44 Z" '
+    'fill="#f97316"/>'
+    '</svg></div>'
+)
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -64,9 +74,21 @@ section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 
 .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #ea580c 130%); color: #fff;
         padding: 2rem 2.4rem; border-radius: 24px; margin-bottom: 1.5rem;
-        box-shadow: 0 25px 50px -20px rgba(15, 23, 42, 0.55); }
+        box-shadow: 0 25px 50px -20px rgba(15, 23, 42, 0.55);
+        display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+        animation: fadeDown 0.8s ease both; }
 .hero h1 { margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.5px; }
 .hero p { margin: 0.35rem 0 0; opacity: 0.85; font-size: 1rem; }
+.hero-art svg { width: 120px; height: 120px; display: block; }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+
+.flame { transform-origin: 50% 90%; animation: flicker 1.3s ease-in-out infinite; }
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.08, 1.12) rotate(2deg); }
+}
+.float { display: inline-block; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 .card { background: rgba(255, 255, 255, 0.92); border-radius: 20px; padding: 1.4rem 1.6rem;
         border: 1px solid #e2e8f0; margin-bottom: 1rem;
@@ -93,7 +115,7 @@ section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 .unit { border-radius: 16px; padding: 0.9rem 0.4rem; text-align: center; font-weight: 600;
         font-size: 0.95rem; background: linear-gradient(180deg, #ecfdf5, #d1fae5); color: #065f46;
         border: 1px solid #a7f3d0; transition: transform 0.2s; }
-.unit:hover { transform: translateY(-3px); }
+.unit:hover { transform: translateY(-4px) scale(1.03); }
 .unit small { display: block; font-weight: 400; font-size: 0.72rem; opacity: 0.8; margin-top: 2px; }
 .unit.fire { background: linear-gradient(135deg, #dc2626, #f97316); color: #fff; border-color: transparent;
              animation: pulse 1.6s infinite; }
@@ -104,15 +126,18 @@ section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 .step { display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.6rem 0; color: #334155;
         border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
 .step:last-child { border-bottom: none; }
+.step:hover .num { transform: scale(1.15); }
 .num { min-width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 0.8rem; font-weight: 600;
        background: linear-gradient(135deg, #1e3a8a, #6366f1); display: flex; align-items: center;
-       justify-content: center; }
+       justify-content: center; transition: transform 0.2s; }
 
 .contact { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0;
            border-bottom: 1px dashed #e2e8f0; color: #334155; font-size: 0.95rem; }
 .contact:last-child { border-bottom: none; }
 .contact a { background: #1e3a8a; color: #fff !important; padding: 0.3rem 0.85rem; border-radius: 999px;
-             text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+             text-decoration: none; font-weight: 600; font-size: 0.85rem;
+             transition: transform 0.2s, box-shadow 0.2s; }
+.contact a:hover { transform: scale(1.06); box-shadow: 0 6px 14px -6px rgba(30, 58, 138, 0.6); }
 
 .chip { display: inline-block; padding: 0.2rem 0.75rem; border-radius: 999px; font-size: 0.78rem;
         font-weight: 600; background: #e0e7ff; color: #3730a3; margin-right: 0.35rem; }
@@ -129,9 +154,16 @@ section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 .alert-row.past .where { color: #334155; }
 .alert-row .meta { color: #64748b; font-size: 0.85rem; }
 
+.stButton > button { transition: transform 0.15s, box-shadow 0.15s; }
+.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(30, 58, 138, 0.6); }
+
 .stat { background: rgba(255,255,255,0.1); border-radius: 14px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; }
 .stat .n { font-size: 1.6rem; font-weight: 700; color: #fff !important; }
 .stat .l { font-size: 0.8rem; opacity: 0.8; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
 </style>
 """
 
@@ -159,7 +191,9 @@ def block_of(unit):
 
 
 def hero(title, subtitle):
-    st.markdown(f'<div class="hero"><h1>{title}</h1><p>{subtitle}</p></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="hero"><div><h1>{title}</h1><p>{subtitle}</p></div>{HERO_ART}</div>',
+        unsafe_allow_html=True)
 
 
 def unit_grid(units, burning):
@@ -209,7 +243,7 @@ def resident_view():
             latest = active[-1]
             if latest["unit"] == your_unit:
                 st.markdown(
-                    f'<div class="banner banner-danger"><div class="icon">🔥</div><div>'
+                    f'<div class="banner banner-danger"><div class="icon flame">🔥</div><div>'
                     f'<div class="title">Your home is affected ({latest["unit"]})</div>'
                     f'<div class="sub">Evacuate now using the stairs and call 101.</div></div></div>',
                     unsafe_allow_html=True)
@@ -231,7 +265,7 @@ def resident_view():
                     st.rerun(scope="fragment")
         else:
             st.markdown(
-                '<div class="banner banner-ok"><div class="icon">✅</div><div>'
+                '<div class="banner banner-ok"><div class="icon float">✅</div><div>'
                 '<div class="title">All clear</div>'
                 '<div class="sub">No active fire alerts in the society.</div></div></div>',
                 unsafe_allow_html=True)
