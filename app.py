@@ -42,6 +42,15 @@ COMMON_STEPS = [
     "Help children, elderly and people with disabilities to exit.",
 ]
 
+# Edit these to your society's real numbers
+CONTACTS = [
+    ("🚒", "Fire helpline", "101"),
+    ("🆘", "Emergency", "112"),
+    ("🚑", "Ambulance", "108"),
+    ("🛡️", "Society security desk", "+91 00000 00000"),
+    ("📋", "Society secretary", "+91 00000 00000"),
+]
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -52,7 +61,6 @@ html, body, [class*="css"] { font-family: 'Poppins', sans-serif; }
 
 section[data-testid="stSidebar"] { background: linear-gradient(180deg, #0f172a, #1e3a8a); }
 section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
-section[data-testid="stSidebar"] .stRadio label p { font-size: 1rem; }
 
 .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #ea580c 130%); color: #fff;
         padding: 2rem 2.4rem; border-radius: 24px; margin-bottom: 1.5rem;
@@ -60,10 +68,11 @@ section[data-testid="stSidebar"] .stRadio label p { font-size: 1rem; }
 .hero h1 { margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.5px; }
 .hero p { margin: 0.35rem 0 0; opacity: 0.85; font-size: 1rem; }
 
-.card { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(6px); border-radius: 20px;
-        padding: 1.4rem 1.6rem; border: 1px solid #e2e8f0; margin-bottom: 1rem;
+.card { background: rgba(255, 255, 255, 0.92); border-radius: 20px; padding: 1.4rem 1.6rem;
+        border: 1px solid #e2e8f0; margin-bottom: 1rem;
         box-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.25); }
 .card h3 { margin: 0 0 0.8rem; font-size: 1.15rem; color: #0f172a; font-weight: 600; }
+.muted { color: #64748b; font-size: 0.9rem; }
 
 .banner { border-radius: 20px; padding: 1.2rem 1.5rem; color: #fff; margin-bottom: 1rem;
           display: flex; align-items: center; gap: 1rem; box-shadow: 0 15px 30px -15px rgba(0,0,0,.35); }
@@ -99,16 +108,25 @@ section[data-testid="stSidebar"] .stRadio label p { font-size: 1rem; }
        background: linear-gradient(135deg, #1e3a8a, #6366f1); display: flex; align-items: center;
        justify-content: center; }
 
+.contact { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0;
+           border-bottom: 1px dashed #e2e8f0; color: #334155; font-size: 0.95rem; }
+.contact:last-child { border-bottom: none; }
+.contact a { background: #1e3a8a; color: #fff !important; padding: 0.3rem 0.85rem; border-radius: 999px;
+             text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+
 .chip { display: inline-block; padding: 0.2rem 0.75rem; border-radius: 999px; font-size: 0.78rem;
         font-weight: 600; background: #e0e7ff; color: #3730a3; margin-right: 0.35rem; }
 .chip.large { background: #fee2e2; color: #991b1b; }
 .chip.medium { background: #fef3c7; color: #92400e; }
 .chip.small { background: #dcfce7; color: #166534; }
+.chip.resolved { background: #dcfce7; color: #166534; }
 
 .alert-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
              padding: 0.9rem 1rem; border-radius: 14px; background: #fff7ed; border: 1px solid #fed7aa;
              margin-bottom: 0.6rem; }
+.alert-row.past { background: #f8fafc; border-color: #e2e8f0; }
 .alert-row .where { font-weight: 600; color: #7c2d12; font-size: 1rem; }
+.alert-row.past .where { color: #334155; }
 .alert-row .meta { color: #64748b; font-size: 0.85rem; }
 
 .stat { background: rgba(255,255,255,0.1); border-radius: 14px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; }
@@ -152,6 +170,16 @@ def steps_html(steps):
                    for i, s in enumerate(steps))
 
 
+def contacts_html():
+    rows = []
+    for icon, label, number in CONTACTS:
+        clean = number.replace(" ", "")
+        rows.append(f'<div class="contact"><span>{icon} {label}<br>'
+                    f'<span class="muted">{number}</span></span>'
+                    f'<a href="tel:{clean}">Call</a></div>')
+    return "".join(rows)
+
+
 @st.fragment(run_every=3)
 def resident_view():
     store = shared_store()
@@ -185,6 +213,15 @@ def resident_view():
                     f'<div class="sub">{block_of(latest["unit"])} · {latest["time"]} · '
                     f'Severity: {latest["severity"]}</div></div></div>',
                     unsafe_allow_html=True)
+
+            # "I am safe" check-in
+            if your_unit in latest["safe"]:
+                st.success("✅ You have checked in as safe. Thank you.")
+            else:
+                if st.button("✅ I am safe", type="primary", use_container_width=True,
+                             key=f"safe_{latest['id']}_{your_unit}"):
+                    latest["safe"].append(your_unit)
+                    st.rerun(scope="fragment")
         else:
             st.markdown(
                 '<div class="banner banner-ok"><div class="icon">✅</div><div>'
@@ -208,11 +245,15 @@ def resident_view():
         st.markdown(
             f'<div class="card"><h3>🛡️ Safety steps for everyone</h3>'
             f'{steps_html(COMMON_STEPS)}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="card"><h3>📞 Emergency contacts</h3>{contacts_html()}</div>',
+            unsafe_allow_html=True)
 
 
 def report_view():
     store = shared_store()
     active = [a for a in store["alerts"] if a["active"]]
+    past = [a for a in store["alerts"] if not a["active"]]
 
     left, right = st.columns([1, 1], gap="large")
 
@@ -234,6 +275,7 @@ def report_view():
                 "severity": severity,
                 "time": datetime.now().strftime("%H:%M:%S"),
                 "active": True,
+                "safe": [],
             })
             store["next_id"] += 1
             st.toast(f"Alert sent about {unit}", icon="✅")
@@ -242,19 +284,33 @@ def report_view():
     with right:
         st.markdown('<div class="card"><h3>Active alerts</h3>', unsafe_allow_html=True)
         if not active:
-            st.markdown('<p style="color:#64748b">No active alerts. Everything is calm. 🌤️</p>',
+            st.markdown('<p class="muted">No active alerts. Everything is calm. 🌤️</p>',
                         unsafe_allow_html=True)
         for a in reversed(active):
             sev = a["severity"].lower()
+            safe_list = ", ".join(a["safe"]) if a["safe"] else "None yet"
             st.markdown(
                 f'<div class="alert-row"><div><div class="where">🔥 {a["unit"]}</div>'
-                f'<div class="meta">{a["type"]} · {a["time"]}</div></div>'
+                f'<div class="meta">{a["type"]} · {a["time"]}</div>'
+                f'<div class="meta">✅ Checked in ({len(a["safe"])}): {safe_list}</div></div>'
                 f'<span class="chip {sev}">{a["severity"]}</span></div>',
                 unsafe_allow_html=True)
             if st.button("Mark resolved", key=f"resolve_{a['id']}"):
                 a["active"] = False
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="card"><h3>📜 Past incidents</h3>', unsafe_allow_html=True)
+    if not past:
+        st.markdown('<p class="muted">No resolved incidents yet.</p>', unsafe_allow_html=True)
+    for a in reversed(past):
+        st.markdown(
+            f'<div class="alert-row past"><div><div class="where">{a["unit"]}</div>'
+            f'<div class="meta">{a["type"]} · {a["severity"]} · {a["time"]}</div>'
+            f'<div class="meta">Residents checked in: {len(a["safe"])}</div></div>'
+            f'<span class="chip resolved">Resolved</span></div>',
+            unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------- Layout ----------
