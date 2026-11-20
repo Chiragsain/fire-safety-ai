@@ -47,8 +47,8 @@ CONTACTS = [
     ("🚒", "Fire helpline", "101"),
     ("🆘", "Emergency", "112"),
     ("🚑", "Ambulance", "108"),
-    ("🛡️", "Society security desk", "+91 00000 00000"),
-    ("📋", "Society secretary", "+91 00000 00000"),
+    ("🛡️", "Society security desk", "+91 98214 37652"),
+    ("📋", "Society secretary", "+91 77031 58946"),
 ]
 
 CSS = """
