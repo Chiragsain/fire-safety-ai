@@ -1,104 +1,148 @@
-import random
+from datetime import datetime
 
 import streamlit as st
 
-st.set_page_config(page_title="Fire Safety AI", page_icon="🧯", layout="centered")
+st.set_page_config(page_title="Society Fire Alert", page_icon="🚨", layout="wide")
 
-st.markdown(
-    """
-    <style>
-    .result {padding: 1rem; border-radius: 12px; text-align: center;
-             font-size: 1.2rem; font-weight: 600; margin-top: 0.5rem;}
-    .safe {background: #e8f5e9; color: #1b5e20;}
-    .danger {background: #ffebee; color: #b71c1c;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+BLOCKS = {
+    "Block A": [f"A-{n}" for n in range(101, 111)],
+    "Block B": [f"B-{n}" for n in range(101, 111)],
+    "Independent Houses": [f"House {n}" for n in range(1, 6)],
+}
+ALL_UNITS = [u for units in BLOCKS.values() for u in units]
 
-EXTINGUISHER_SVG = """
-<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" width="200">
-  <ellipse cx="150" cy="285" rx="80" ry="10" fill="#00000030"/>
-  <rect x="115" y="30" width="70" height="40" rx="8" fill="#333"/>
-  <path d="M185 45 Q230 40 235 110" stroke="#333" stroke-width="10" fill="none"/>
-  <rect x="100" y="70" width="100" height="210" rx="38" fill="#d32f2f"/>
-  <rect x="100" y="150" width="100" height="60" fill="#ffffff"/>
-  <text x="150" y="176" text-anchor="middle" font-size="20" font-weight="bold" fill="#d32f2f">FIRE</text>
-  <text x="150" y="196" text-anchor="middle" font-size="11" fill="#333">EXTINGUISHER</text>
-</svg>
-"""
-
-FIRE_CATEGORIES = {
-    "Electrical": "Cut the power first, then use a CO2 or dry powder extinguisher. Never use water.",
-    "Cooking oil": "Turn off the heat and cover the pan with a lid. Never pour water on it.",
-    "Paper / wood": "Water or a dry powder extinguisher works well on ordinary combustibles.",
-    "Gas": "Shut off the gas supply if it is safe. Move away and call emergency services.",
+FIRE_TYPES = {
+    "Kitchen / cooking": [
+        "Turn off the gas and the stove if it is safe to reach them.",
+        "Cover a pan fire with a lid. Never pour water on an oil fire.",
+        "Do not go back inside for belongings.",
+    ],
+    "Electrical": [
+        "Switch off the main power supply (MCB) only if it is safe.",
+        "Use a CO2 or dry powder extinguisher. Never use water on electrical fires.",
+        "Do not use the lift.",
+    ],
+    "Gas cylinder": [
+        "Close the regulator valve only if you can reach it safely.",
+        "Move everyone away from the area immediately.",
+        "Do not switch lights or electrical items on or off.",
+    ],
+    "General / unknown": [
+        "Alert others and leave by the staircase.",
+        "Close doors behind you to slow the spread of fire.",
+        "If there is smoke, stay low and cover your nose and mouth.",
+    ],
 }
 
-st.title("🧯 Fire Safety AI")
-st.caption("An illustrative web app. It is a concept demo and is not connected to any hardware.")
+COMMON_STEPS = [
+    "Leave the building by the stairs, never the lift.",
+    "Gather at the society assembly point.",
+    "Call 101 (Fire) or 112 (Emergency) from a safe place.",
+    "Help children, elderly and people with disabilities to exit.",
+]
 
-tab_home, tab_ai, tab_about = st.tabs(["Home", "AI Assistant", "About"])
 
-with tab_home:
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.markdown(EXTINGUISHER_SVG, unsafe_allow_html=True)
-    with col2:
-        st.subheader("Smart protection against fire")
-        st.write(
-            "This concept shows how an AI system could help people spot fires early "
-            "and choose the right way to put them out."
-        )
-        st.markdown(
-            "- Detects fire risk from signs such as heat and smoke\n"
-            "- Suggests the right extinguishing method\n"
-            "- Gives simple safety advice in the moment"
-        )
+@st.cache_resource
+def shared_store():
+    """Alerts shared by everyone running this app (demo only)."""
+    return {"next_id": 1, "alerts": []}
 
-    st.subheader("Choose the right method")
-    fire_type = st.selectbox("What is burning?", list(FIRE_CATEGORIES.keys()))
-    st.info(FIRE_CATEGORIES[fire_type])
 
-with tab_ai:
-    st.subheader("Fire risk scan (simulated)")
-    st.write("Press the button to run a simulated AI scan of a room.")
+def block_of(unit):
+    for block, units in BLOCKS.items():
+        if unit in units:
+            return block
+    return ""
 
-    if st.button("Run AI scan", type="primary"):
-        with st.spinner("Analysing heat, smoke and light patterns..."):
-            import time
-            time.sleep(1.2)
-        risk = random.randint(5, 95)
-        st.progress(risk / 100, text=f"Fire risk: {risk}%")
-        if risk >= 60:
-            st.markdown('<div class="result danger">🔥 High risk: leave the area and call for help</div>',
-                        unsafe_allow_html=True)
+
+@st.fragment(run_every=3)
+def resident_view():
+    store = shared_store()
+    active = [a for a in store["alerts"] if a["active"]]
+
+    your_unit = st.selectbox("Select your flat / house", ALL_UNITS)
+
+    # Notify about new alerts once per session
+    seen = st.session_state.setdefault("seen", set())
+    for a in store["alerts"]:
+        if a["id"] not in seen:
+            seen.add(a["id"])
+            if a["active"]:
+                st.toast(f"🔥 Fire alert: {a['unit']} ({a['time']})", icon="🚨")
+
+    if active:
+        latest = active[-1]
+        if latest["unit"] == your_unit:
+            st.error(f"🔥 YOUR HOME IS AFFECTED ({latest['unit']}). Evacuate now and call 101.")
         else:
-            st.markdown('<div class="result safe">✅ Low risk: no fire detected</div>',
-                        unsafe_allow_html=True)
+            st.warning(f"🔥 Fire reported at {latest['unit']} ({block_of(latest['unit']) or 'society'}) "
+                       f"at {latest['time']}. Severity: {latest['severity']}.")
+    else:
+        st.success("No active fire alerts in the society.")
 
-    st.divider()
-    st.subheader("Ask the safety assistant")
-    question = st.text_input("Your question", placeholder="e.g. What do I do if a pan catches fire?")
-    if question:
-        q = question.lower()
-        if "pan" in q or "oil" in q or "kitchen" in q:
-            answer = FIRE_CATEGORIES["Cooking oil"]
-        elif "electric" in q or "wire" in q or "socket" in q:
-            answer = FIRE_CATEGORIES["Electrical"]
-        elif "gas" in q or "cylinder" in q:
-            answer = FIRE_CATEGORIES["Gas"]
-        elif "water" in q:
-            answer = "Water is only safe on paper and wood fires. Avoid it on electrical, oil and gas fires."
-        else:
-            answer = "Try asking about a pan fire, an electrical fire, a gas fire, or whether to use water."
-        st.write(answer)
+    st.subheader("Society map")
+    burning = {a["unit"] for a in active}
+    for block, units in BLOCKS.items():
+        st.markdown(f"**{block}**")
+        cols = st.columns(5)
+        for i, unit in enumerate(units):
+            with cols[i % 5]:
+                if unit in burning:
+                    st.error(f"{unit} 🔥")
+                else:
+                    st.success(unit)
 
-with tab_about:
-    st.subheader("About this concept")
-    st.write(
-        "Fire Safety AI is an illustrative web app. It shows how an AI-based fire "
-        "safety tool could look and work for users. The scan and assistant are simulated, "
-        "and the app is not connected to any physical device."
-    )
-    st.write("Built with Python and Streamlit.")
+    st.subheader("What to do now")
+    if active:
+        fire_type = active[-1]["type"]
+        st.markdown(f"**For this type of fire ({fire_type}):**")
+        for step in FIRE_TYPES[fire_type]:
+            st.markdown(f"- {step}")
+    st.markdown("**For everyone:**")
+    for step in COMMON_STEPS:
+        st.markdown(f"- {step}")
+
+
+def report_view():
+    st.header("Report a fire (demo)")
+    store = shared_store()
+
+    with st.form("report_form"):
+        unit = st.selectbox("Flat / house where the fire started", ALL_UNITS)
+        fire_type = st.selectbox("Type of fire", list(FIRE_TYPES.keys()))
+        severity = st.radio("Severity", ["Small", "Medium", "Large"], horizontal=True)
+        send = st.form_submit_button("🚨 Send alert to all members", type="primary")
+
+    if send:
+        store["alerts"].append({
+            "id": store["next_id"],
+            "unit": unit,
+            "type": fire_type,
+            "severity": severity,
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "active": True,
+        })
+        store["next_id"] += 1
+        st.success(f"Alert sent to all members about {unit}.")
+
+    st.subheader("Active alerts")
+    active = [a for a in store["alerts"] if a["active"]]
+    if not active:
+        st.write("None.")
+    for a in active:
+        c1, c2 = st.columns([4, 1])
+        c1.write(f"🔥 **{a['unit']}** | {a['type']} | {a['severity']} | {a['time']}")
+        if c2.button("Mark resolved", key=f"resolve_{a['id']}"):
+            a["active"] = False
+            st.rerun()
+
+
+st.title("🏘️ Society Fire Alert System")
+st.sidebar.title("Menu")
+role = st.sidebar.radio("I am a", ["Resident", "Report a fire (demo)"])
+st.sidebar.caption("Demo only. Alerts are simulated and shared by everyone running this app.")
+
+if role == "Resident":
+    resident_view()
+else:
+    report_view()
