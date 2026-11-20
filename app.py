@@ -139,9 +139,16 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 
 @st.cache_resource
+def _cached_store():
+    return {"next_id": 1, "alerts": []}
+
+
 def shared_store():
     """Alerts shared by everyone running this app (demo only)."""
-    return {"next_id": 1, "alerts": []}
+    store = _cached_store()
+    for a in store["alerts"]:
+        a.setdefault("safe", [])
+    return store
 
 
 def block_of(unit):
